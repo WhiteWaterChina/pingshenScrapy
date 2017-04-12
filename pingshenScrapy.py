@@ -35,7 +35,7 @@ def sumtimesplit(strtimeList):
         totalTime += item
     dayTime, hourtimeTemp = divmod(totalTime, 86400)
     hourTime = divmod(hourtimeTemp, 3600)[0]
-    dataReturn = "%d天%d小时".decode('gbk') %(dayTime, hourTime)
+    dataReturn = "%d天%d小时".decode('gbk') % (dayTime, hourTime)
     return dataReturn
 
 
@@ -161,13 +161,15 @@ def get_data():
     TitleItem = ['评审编号'.decode('gbk'), '评审名称'.decode('gbk'), '项目名称'.decode('gbk'), '提交时间'.decode('gbk'),
                  '关闭时间'.decode('gbk'), '处理时长'.decode('gbk'), '测试花费时间'.decode('gbk'), '状态'.decode('gbk'), '是否有报告附件'.decode('gbk'),
                  '报告名称'.decode('gbk'),]
-    WorkBook = xlsxwriter.Workbook("评审系统抓取信息.xlsx".decode('gbk'))
-    SheetOne = WorkBook.add_worksheet('sheet1')
+    timestamp = time.strftime('%Y%m%d', time.localtime())
+    WorkBook = xlsxwriter.Workbook("评审系统抓取信息-%s.xlsx".decode('gbk') % timestamp)
+    SheetOne = WorkBook.add_worksheet('评审系统抓取信息'.decode('gbk'))
     formatOne = WorkBook.add_format()
     formatOne.set_border(1)
     formatTwo = WorkBook.add_format()
     formatTwo.set_border(1)
     formatTwo.set_num_format('yy/mm/dd')
+    SheetOne.set_column('A:J', 14)
     for i in range(0, len(TitleItem)):
         SheetOne.write(0, i, TitleItem[i], formatOne)
     lineCount = 1
@@ -191,7 +193,7 @@ def get_data():
 
 root = Tkinter.Tk()
 root.title("评审系统抓取工具".decode('gbk'))
-root.geometry('800x600')
+#root.geometry('800x600')
 root.resizable(width=True, height=True)
 var_char_entry_username = Tkinter.StringVar()
 var_char_entry_password = Tkinter.StringVar()
@@ -199,44 +201,20 @@ var_char_entry_date_start = Tkinter.StringVar()
 var_char_entry_data_end = Tkinter.StringVar()
 var_char_entry_day_start = Tkinter.StringVar()
 
-frame_top = Tkinter.Frame(root, height=70)
-frame_top.pack(side=Tkinter.TOP)
-frame_top_top = Tkinter.Frame(frame_top, height=20)
-frame_top_top.pack()
-frame_top_middle = Tkinter.Frame(frame_top, height=20)
-frame_top_middle.pack()
-frame_top_bottom = Tkinter.Frame(frame_top, height=20)
-frame_top_bottom.pack()
-Tkinter.Label(frame_top_top, text='请在如下输入评审系统的用户名和密码'.decode('gbk'), bg='Yellow', justify='left').pack(side=Tkinter.LEFT)
-Tkinter.Label(frame_top_middle, text='用户名'.decode('gbk'), bg='Red', justify='left').pack(side=Tkinter.LEFT)
-Tkinter.Entry(frame_top_middle, textvariable=var_char_entry_username, width=20).pack(side=Tkinter.RIGHT)
-Tkinter.Label(frame_top_bottom, text='密码'.decode('gbk'), bg='Red', justify='left').pack(side=Tkinter.LEFT)
-Tkinter.Entry(frame_top_bottom, textvariable=var_char_entry_password, width=20).pack(side=Tkinter.RIGHT)
+Tkinter.Label(root, text='请在如下输入评审系统的用户名和密码'.decode('gbk'), bg='Yellow', justify='left').grid(row=0, column=0, columnspan=4)
+Tkinter.Label(root, text='用户名'.decode('gbk'), bg='Red').grid(row=1, column=0, sticky='W', padx=10, pady=5)
+Tkinter.Entry(root, textvariable=var_char_entry_username).grid(row=1, column=0, columnspan=2, padx=10, pady=5)
+Tkinter.Label(root, text='密码'.decode('gbk'), bg='Red').grid(row=2, column=0, sticky='W', padx=10, pady=5)
+Tkinter.Entry(root, textvariable=var_char_entry_password).grid(row=2, column=0, columnspan=2, padx=10, pady=5)
 
-frame_middle = Tkinter.Frame(root, height=100)
-frame_middle.pack()
-frame_middle_top = Tkinter.Frame(frame_middle, height=20)
-frame_middle_top.pack()
-frame_middle_middle = Tkinter.Frame(frame_middle, height=20)
-frame_middle_middle.pack()
-frame_middle_bottom = Tkinter.Frame(frame_middle, height=20)
-frame_middle_bottom.pack()
-Tkinter.Label(frame_middle_top, text='请在如下输入想要抓取的信息的起止日期(需包含年/月/日信息！格式为20170101.个位数的月和日一定要带0！）'.decode('gbk'), bg='Yellow', justify='left').pack(side=Tkinter.LEFT)
-Tkinter.Label(frame_middle_middle, text='开始日期'.decode('gbk'), bg='Red', justify='left').pack(side=Tkinter.LEFT)
-Tkinter.Entry(frame_middle_middle, textvariable=var_char_entry_date_start, width=20).pack(side=Tkinter.RIGHT)
-Tkinter.Label(frame_middle_bottom, text='结束日期'.decode('gbk'), bg='Red', justify='left').pack(side=Tkinter.LEFT)
-Tkinter.Entry(frame_middle_bottom, textvariable=var_char_entry_data_end, width=20).pack(side=Tkinter.RIGHT)
+Tkinter.Label(root, text='请在如下输入想要抓取的信息的起止日期(需包含年/月/日信息！格式为20170101.个位数的月和日一定要带0！）'.decode('gbk'), bg='Yellow', justify='left').grid(row=3, column=0, columnspan=4)
+Tkinter.Label(root, text='开始日期'.decode('gbk'), bg='Red').grid(row=4, column=0, sticky='W', padx=10, pady=5)
+Tkinter.Entry(root, textvariable=var_char_entry_date_start).grid(row=4, column=0, columnspan=2, padx=10, pady=5)
+Tkinter.Label(root, text='结束日期'.decode('gbk'), bg='Red').grid(row=5, column=0, sticky='W', padx=10, pady=5)
+Tkinter.Entry(root, textvariable=var_char_entry_data_end).grid(row=5, column=0, columnspan=2, padx=10, pady=5)
 
-frame_bottom = Tkinter.Frame(root, height=70)
-frame_bottom.pack()
-frame_bottom_top = Tkinter.Frame(frame_bottom, height=20)
-frame_bottom_top.pack()
-frame_bottom_middle = Tkinter.Frame(frame_bottom, height=20)
-frame_bottom_middle.pack()
-frame_bottom_bottom = Tkinter.Frame(frame_bottom, height=20)
-frame_bottom_bottom.pack()
-Tkinter.Button(frame_bottom_bottom, text='GO'.decode('gbk'), command=get_data, width=20).pack(side=Tkinter.LEFT)
-Tkinter.Button(frame_bottom_bottom, text='Exit'.decode('gbk'), command=root.destroy, width=20).pack(side=Tkinter.LEFT)
+Tkinter.Button(root, text='GO'.decode('gbk'), command=get_data).grid(row=6, column=0, columnspan=2, sticky='WESN', padx=20, pady=10)
+Tkinter.Button(root, text='Exit'.decode('gbk'), command=root.destroy).grid(row=6, column=2, columnspan=2, sticky='WESN', padx=20, pady=10)
 
 
 root.mainloop()
