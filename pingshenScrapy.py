@@ -348,26 +348,26 @@ class PingShenFrame(wx.Frame):
             SheetOne.write(0, i, TitleItem[i], formatOne)
         lineCount = 1
         for index, item in enumerate(auditList):
-            if self.checkBox_audit.GetValue:
+            if self.checkBox_audit.GetValue():
                 SheetOne.write(lineCount, 0, auditList[index], formatOne)
-            if self.checkBox_name.GetValue:
+            if self.checkBox_name.GetValue():
                 SheetOne.write(lineCount, 1, nameList[index], formatOne)
-            if self.checkBox_productName.GetValue:
+            if self.checkBox_productName.GetValue():
                 SheetOne.write(lineCount, 2, productNameList[index], formatOne)
-            if self.checkBox_submitTime:
+            if self.checkBox_submitTime.GetValue():
                 SheetOne.write(lineCount, 3, submitTimeList[index], formatTwo)
-            if self.checkBox_closeTime.GetValue:
+            if self.checkBox_closeTime.GetValue():
                 SheetOne.write(lineCount, 4, closeTimeList[index], formatTwo)
-            if self.checkBox_handleTime.GetValue:
+            if self.checkBox_handleTime.GetValue():
                 SheetOne.write(lineCount, 5, handleTimeList[index], formatOne)
-            if self.checkBox_totalTestTime.GetValue:
+            if self.checkBox_totalTestTime.GetValue():
                 SheetOne.write(lineCount, 6, totalTestTimeList[index], formatOne)
-            if self.checkBox_status.GetValue:
+            if self.checkBox_status.GetValue():
                 SheetOne.write(lineCount, 7, statusList[index], formatOne)
-            if self.checkBox_report.GetValue:
+            if self.checkBox_report.GetValue():
                 SheetOne.write(lineCount, 8, reportList[index], formatOne)
                 SheetOne.write(lineCount, 9, reportNameList[index], formatOne)
-            if self.checkBox_summary.GetValue:
+            if self.checkBox_summary.GetValue():
                 SheetOne.write(lineCount, 10, summaryList[index], formatOne)
             lineCount += 1
         WorkBook.close()
