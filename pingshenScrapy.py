@@ -13,7 +13,7 @@ from selenium.webdriver.common.keys import Keys
 import xlsxwriter
 import datetime
 import wx
-import wx.xrc
+from threading import Thread
 
 
 def sumtimesplit(strtimelist):
@@ -39,152 +39,187 @@ def sumtimesplit(strtimelist):
 
 
 class PingShenFrame(wx.Frame):
-
     def __init__(self, parent):
         wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"评审系统信息抓取工具", pos=wx.DefaultPosition,
-                          size=wx.Size(642, 344), style=wx.DEFAULT_FRAME_STYLE | wx.TAB_TRAVERSAL)
+                          size=wx.Size(504, 460), style=wx.DEFAULT_FRAME_STYLE | wx.TAB_TRAVERSAL)
 
-        self.SetSizeHintsSz(wx.DefaultSize, wx.DefaultSize)
+        self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
         self.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_APPWORKSPACE))
 
         bSizer2 = wx.BoxSizer(wx.VERTICAL)
 
+        self.m_panel1 = wx.Panel(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL)
+        self.m_panel1.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWFRAME))
+        bSizer10 = wx.BoxSizer(wx.VERTICAL)
+
         bSizer3 = wx.BoxSizer(wx.VERTICAL)
 
-        self.text_title1 = wx.StaticText(self, wx.ID_ANY, u"请在如下输入用户名和密码", wx.DefaultPosition, wx.DefaultSize,
+        self.text_title1 = wx.StaticText(self.m_panel1, wx.ID_ANY, u"请在如下输入用户名和密码", wx.DefaultPosition, wx.DefaultSize,
                                          wx.ST_NO_AUTORESIZE)
         self.text_title1.Wrap(-1)
-        self.text_title1.SetFont(wx.Font(12, 70, 90, 90, False, "宋体"))
+        self.text_title1.SetFont(wx.Font(12, 70, 90, 90, False, wx.EmptyString))
         self.text_title1.SetForegroundColour(wx.Colour(255, 255, 0))
         self.text_title1.SetBackgroundColour(wx.Colour(0, 128, 0))
 
         bSizer3.Add(self.text_title1, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
-        bSizer2.Add(bSizer3, 1, wx.EXPAND, 5)
+        bSizer10.Add(bSizer3, 0, wx.EXPAND, 5)
 
         gSizer2 = wx.GridSizer(2, 2, 0, 0)
 
-        self.text_username = wx.StaticText(self, wx.ID_ANY, u"用户名", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.text_username = wx.StaticText(self.m_panel1, wx.ID_ANY, u"用户名", wx.DefaultPosition, wx.DefaultSize, 0)
         self.text_username.Wrap(-1)
+        self.text_username.SetForegroundColour(wx.Colour(255, 255, 0))
+        self.text_username.SetBackgroundColour(wx.Colour(0, 128, 0))
+
         gSizer2.Add(self.text_username, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
-        self.input_username = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
+        self.input_username = wx.TextCtrl(self.m_panel1, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize,
+                                          0)
         gSizer2.Add(self.input_username, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
-        self.text_password = wx.StaticText(self, wx.ID_ANY, u"密码", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.text_password = wx.StaticText(self.m_panel1, wx.ID_ANY, u"密码", wx.DefaultPosition, wx.DefaultSize, 0)
         self.text_password.Wrap(-1)
+        self.text_password.SetForegroundColour(wx.Colour(255, 255, 0))
+        self.text_password.SetBackgroundColour(wx.Colour(0, 128, 0))
+
         gSizer2.Add(self.text_password, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
-        self.input_password = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize,
+        self.input_password = wx.TextCtrl(self.m_panel1, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize,
                                           wx.TE_PASSWORD)
         gSizer2.Add(self.input_password, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
-        bSizer2.Add(gSizer2, 0, 0, 5)
+        bSizer10.Add(gSizer2, 0, 0, 5)
 
         bSizer4 = wx.BoxSizer(wx.VERTICAL)
 
-        self.text_title2 = wx.StaticText(self, wx.ID_ANY,
-                                         u"请在如下输入想要抓取的信息的起止日期(需包含年/月/日信息！格式为20170101.个位数的月和日一定要带0！）",
-                                         wx.DefaultPosition, wx.DefaultSize, 0)
+        self.text_title2 = wx.StaticText(self.m_panel1, wx.ID_ANY,
+                                         u"请在如下输入想要抓取的信息的起止日期(需包含年/月/日信息！格式为20170101.\n个位数的月和日一定要带0！）",
+                                         wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTRE)
         self.text_title2.Wrap(-1)
-        self.text_title2.SetFont(wx.Font(9, 70, 90, 90, False, "宋体"))
+        self.text_title2.SetFont(wx.Font(9, 70, 90, 90, False, wx.EmptyString))
         self.text_title2.SetForegroundColour(wx.Colour(255, 255, 0))
         self.text_title2.SetBackgroundColour(wx.Colour(0, 128, 0))
 
         bSizer4.Add(self.text_title2, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
-        bSizer2.Add(bSizer4, 1, wx.EXPAND, 5)
+        bSizer10.Add(bSizer4, 0, wx.EXPAND, 5)
 
         gSizer3 = wx.GridSizer(0, 2, 0, 0)
 
-        self.text_startdate = wx.StaticText(self, wx.ID_ANY, u"开始日期", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.text_startdate = wx.StaticText(self.m_panel1, wx.ID_ANY, u"开始日期", wx.DefaultPosition, wx.DefaultSize, 0)
         self.text_startdate.Wrap(-1)
+        self.text_startdate.SetForegroundColour(wx.Colour(255, 255, 0))
+        self.text_startdate.SetBackgroundColour(wx.Colour(0, 128, 0))
+
         gSizer3.Add(self.text_startdate, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
-        self.input_startdate = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
+        self.input_startdate = wx.TextCtrl(self.m_panel1, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize,
+                                           0)
         gSizer3.Add(self.input_startdate, 0, wx.ALL, 5)
 
-        self.text_enddate = wx.StaticText(self, wx.ID_ANY, u"结束日期", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.text_enddate = wx.StaticText(self.m_panel1, wx.ID_ANY, u"结束日期", wx.DefaultPosition, wx.DefaultSize, 0)
         self.text_enddate.Wrap(-1)
+        self.text_enddate.SetForegroundColour(wx.Colour(255, 255, 0))
+        self.text_enddate.SetBackgroundColour(wx.Colour(0, 128, 0))
+
         gSizer3.Add(self.text_enddate, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
-        self.input_enddate = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
+        self.input_enddate = wx.TextCtrl(self.m_panel1, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize,
+                                         0)
         gSizer3.Add(self.input_enddate, 0, wx.ALL, 5)
 
-        bSizer2.Add(gSizer3, 0, 0, 5)
+        bSizer10.Add(gSizer3, 0, 0, 5)
 
         bSizer9 = wx.BoxSizer(wx.VERTICAL)
 
-        self.text_3 = wx.StaticText(self, wx.ID_ANY, u"请在如下选择想要在最后的结果文件中显示的项目", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.text_3 = wx.StaticText(self.m_panel1, wx.ID_ANY, u"请在如下选择想要在最后文件中显示的项目", wx.DefaultPosition,
+                                    wx.DefaultSize, 0)
         self.text_3.Wrap(-1)
-        self.text_3.SetFont(wx.Font(12, 70, 90, 90, False, "宋体"))
+        self.text_3.SetFont(wx.Font(12, 70, 90, 90, False, wx.EmptyString))
         self.text_3.SetForegroundColour(wx.Colour(255, 255, 0))
         self.text_3.SetBackgroundColour(wx.Colour(0, 128, 0))
 
         bSizer9.Add(self.text_3, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
-        bSizer2.Add(bSizer9, 1, wx.EXPAND, 5)
+        bSizer10.Add(bSizer9, 0, wx.EXPAND, 5)
 
         bSizer6 = wx.BoxSizer(wx.VERTICAL)
 
         bSizer61 = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.checkBox_audit = wx.CheckBox(self, wx.ID_ANY, u"评审编号", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.checkBox_audit = wx.CheckBox(self.m_panel1, wx.ID_ANY, u"评审编号", wx.DefaultPosition, wx.DefaultSize, 0)
         self.checkBox_audit.SetValue(True)
         bSizer61.Add(self.checkBox_audit, 0, wx.ALL, 5)
 
-        self.checkBox_name = wx.CheckBox(self, wx.ID_ANY, u"评审名称", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.checkBox_name = wx.CheckBox(self.m_panel1, wx.ID_ANY, u"评审名称", wx.DefaultPosition, wx.DefaultSize, 0)
         self.checkBox_name.SetValue(True)
         bSizer61.Add(self.checkBox_name, 0, wx.ALL, 5)
 
-        self.checkBox_productName = wx.CheckBox(self, wx.ID_ANY, u"项目名称", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.checkBox_productName = wx.CheckBox(self.m_panel1, wx.ID_ANY, u"项目名称", wx.DefaultPosition, wx.DefaultSize,
+                                                0)
         self.checkBox_productName.SetValue(True)
         bSizer61.Add(self.checkBox_productName, 0, wx.ALL, 5)
 
-        self.checkBox_submitTime = wx.CheckBox(self, wx.ID_ANY, u"提交时间", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.checkBox_submitTime = wx.CheckBox(self.m_panel1, wx.ID_ANY, u"提交时间", wx.DefaultPosition, wx.DefaultSize, 0)
         self.checkBox_submitTime.SetValue(True)
         bSizer61.Add(self.checkBox_submitTime, 0, wx.ALL, 5)
 
-        self.checkBox_closeTime = wx.CheckBox(self, wx.ID_ANY, u"关闭时间", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.checkBox_closeTime = wx.CheckBox(self.m_panel1, wx.ID_ANY, u"关闭时间", wx.DefaultPosition, wx.DefaultSize, 0)
         self.checkBox_closeTime.SetValue(True)
         bSizer61.Add(self.checkBox_closeTime, 0, wx.ALL, 5)
 
-        self.checkBox_handleTime = wx.CheckBox(self, wx.ID_ANY, u"处理时长", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.checkBox_handleTime.SetValue(True)
-        bSizer61.Add(self.checkBox_handleTime, 0, wx.ALL, 5)
-
-        self.checkBox_totalTestTime = wx.CheckBox(self, wx.ID_ANY, u"测试花费时间", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.checkBox_totalTestTime.SetValue(True)
-        bSizer61.Add(self.checkBox_totalTestTime, 0, wx.ALL, 5)
-
-        bSizer6.Add(bSizer61, 1, wx.EXPAND, 5)
+        bSizer6.Add(bSizer61, 0, wx.EXPAND, 5)
 
         bSizer8 = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.checkBox_status = wx.CheckBox(self, wx.ID_ANY, u"当前状态", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.checkBox_handleTime = wx.CheckBox(self.m_panel1, wx.ID_ANY, u"处理时长", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.checkBox_handleTime.SetValue(True)
+        bSizer8.Add(self.checkBox_handleTime, 0, wx.ALL, 5)
+
+        self.checkBox_totalTestTime = wx.CheckBox(self.m_panel1, wx.ID_ANY, u"测试花费时间", wx.DefaultPosition,
+                                                  wx.DefaultSize, 0)
+        self.checkBox_totalTestTime.SetValue(True)
+        bSizer8.Add(self.checkBox_totalTestTime, 0, wx.ALL, 5)
+
+        self.checkBox_status = wx.CheckBox(self.m_panel1, wx.ID_ANY, u"当前状态", wx.DefaultPosition, wx.DefaultSize, 0)
         self.checkBox_status.SetValue(True)
         bSizer8.Add(self.checkBox_status, 0, wx.ALL, 5)
 
-        self.checkBox_report = wx.CheckBox(self, wx.ID_ANY, u"是否有报告附件", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.checkBox_report = wx.CheckBox(self.m_panel1, wx.ID_ANY, u"是否有报告附件", wx.DefaultPosition, wx.DefaultSize, 0)
         self.checkBox_report.SetValue(True)
         bSizer8.Add(self.checkBox_report, 0, wx.ALL, 5)
 
-        self.checkBox_summary = wx.CheckBox(self, wx.ID_ANY, u"评审要点", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.checkBox_summary = wx.CheckBox(self.m_panel1, wx.ID_ANY, u"评审要点", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.checkBox_summary.SetValue(True)
         bSizer8.Add(self.checkBox_summary, 0, wx.ALL, 5)
 
-        bSizer6.Add(bSizer8, 1, wx.EXPAND, 5)
+        bSizer6.Add(bSizer8, 0, wx.EXPAND, 5)
 
-        bSizer2.Add(bSizer6, 1, wx.EXPAND, 5)
+        bSizer10.Add(bSizer6, 0, wx.EXPAND, 5)
 
         bSizer21 = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.button_go = wx.Button(self, wx.ID_ANY, u"GO", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.button_go = wx.Button(self.m_panel1, wx.ID_ANY, u"GO", wx.DefaultPosition, wx.DefaultSize, 0)
         bSizer21.Add(self.button_go, 0, wx.ALL, 5)
 
-        self.button_exit = wx.Button(self, wx.ID_ANY, u"EXIT", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.button_exit = wx.Button(self.m_panel1, wx.ID_ANY, u"EXIT", wx.DefaultPosition, wx.DefaultSize, 0)
         bSizer21.Add(self.button_exit, 0, wx.ALL, 5)
 
-        bSizer2.Add(bSizer21, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL, 5)
+        bSizer10.Add(bSizer21, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL, 5)
+
+        bSizer91 = wx.BoxSizer(wx.VERTICAL)
+
+        self.textctrl_display = wx.TextCtrl(self.m_panel1, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition,
+                                            wx.DefaultSize, wx.TE_MULTILINE | wx.TE_READONLY)
+        bSizer91.Add(self.textctrl_display, 1, wx.ALL | wx.EXPAND, 5)
+
+        bSizer10.Add(bSizer91, 1, wx.EXPAND, 5)
+
+        self.m_panel1.SetSizer(bSizer10)
+        self.m_panel1.Layout()
+        bSizer10.Fit(self.m_panel1)
+        bSizer2.Add(self.m_panel1, 1, wx.EXPAND | wx.ALL, 5)
 
         self.SetSizer(bSizer2)
         self.Layout()
@@ -192,8 +227,11 @@ class PingShenFrame(wx.Frame):
         self.Centre(wx.BOTH)
 
         # Connect Events
-        self.button_go.Bind(wx.EVT_BUTTON, self.get_data)
+        self.button_go.Bind(wx.EVT_BUTTON, self.onbutton)
         self.button_exit.Bind(wx.EVT_BUTTON, self.close)
+
+        self._thread = Thread(target=self.run, args=())
+        self._thread.daemon = True
 
 
     def __del__(self):
@@ -202,8 +240,9 @@ class PingShenFrame(wx.Frame):
     def close(self, event):
         self.Close()
 
-    def get_data(self, event):
-        print time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+    def run(self):
+        self.updatedisplay("开始抓取".decode('gbk'))
+        self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         username = self.input_username.GetValue()
         password = self.input_password.GetValue()
         chromedriverPath = os.path.join(os.path.abspath(os.path.curdir), "chromedriver.exe")
@@ -324,7 +363,8 @@ class PingShenFrame(wx.Frame):
                     handleTimeList.append(handleTime)
                     statusList.append(status)
                     summaryList.append(summary)
-            print("当前正在抓取第%d页，总共%d页".decode('gbk') % (pageCount - 1, totalPages))
+           # print("当前正在抓取第%d页，总共%d页".decode('gbk') % (pageCount - 1, totalPages))
+            self.updatedisplay("当前正在抓取第%d页，总共%d页".decode('gbk') % (pageCount - 1, totalPages))
             inNum = browser.find_element_by_css_selector("input.pagination-num")
             inNum.clear()
             inNum.send_keys(pageCount)
@@ -371,10 +411,27 @@ class PingShenFrame(wx.Frame):
                 SheetOne.write(lineCount, 10, summaryList[index], formatOne)
             lineCount += 1
         WorkBook.close()
-        print time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
-        dlg_info = wx.MessageDialog(None, '抓到%s个结果！已经将结果写入《评审系统抓取信息.xlsx》，请自行查阅！请点击EXIT退出程序！'.decode('gbk') % len(
-            auditList), '完成提示'.decode('gbk'), wx.OK | wx.ICON_INFORMATION | wx.STAY_ON_TOP)
-        dlg_info.ShowModal()
+        self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
+        self.updatedisplay("抓到%s个结果！已经将结果写入《评审系统抓取信息.xlsx》，请自行查阅！请点击EXIT退出程序！".decode('gbk') % len(auditList))
+        time.sleep(1)
+        self.updatedisplay("Finished")
+        self.button_go.Enable()
+
+    def onbutton(self, event):
+        self._thread.start()
+        self.started = True
+        self.button_go = event.GetEventObject()
+        self.button_go.Disable()
+
+    def updatedisplay(self, msg):
+        t = msg
+        if isinstance(t, int):
+            self.textctrl_display.AppendText("完成第%s页".decode('gbk') % t)
+        elif t == "Finished":
+            self.button_go.Enable()
+        else:
+            self.textctrl_display.AppendText("%s".decode('gbk') % t)
+        self.textctrl_display.AppendText(os.linesep)
 
 
 if __name__ == '__main__':
