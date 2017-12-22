@@ -1,20 +1,18 @@
 #!/usr/bin/env python
 # -*- coding:cp936 -*-
-import time
-import os
-import re
-import selenium.common.exceptions
-from selenium import webdriver
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.keys import Keys
-import xlsxwriter
-import datetime
-import wx
-from threading import Thread
+# Author:yanshuo@inspur.com
 
+import requests
+import re
+from bs4 import BeautifulSoup
+import xlsxwriter
+import os
+import time
+import datetime
+from threading import Thread
+import wx
+import urllib2
+import json
 
 def sumtimesplit(strtimelist):
     tempTimeFunc = []
@@ -37,8 +35,29 @@ def sumtimesplit(strtimelist):
     dataReturn = "%d天%d小时".decode('gbk') % (dayTime, hourTime)
     return dataReturn
 
+def get_status(status):
+    switcher = {
+        "0": "保存".decode('gbk'),
+        "1": "提交".decode('gbk'),
+        "shenhepeizhi-sq": "售前审核配置".decode('gbk'),
+        "shenhe-chanpinjingli":"产品经理审核".decode('gbk'),
+        "querenxuanpei-ddy": "订单员确认选配".decode('gbk'),
+        "shenhepingshen-yf": "研发接口人审核评审".decode('gbk'),
+        "shenhepingshen-csjk": "测试接口人审核评审".decode('gbk'),
+        "ceshi-cs": "测试人员测试".decode('gbk'),
+        "shenheceshibaogao-yf": "研发接口审核测试报告".decode('gbk'),
+        "shenheceshibaogao-xmjl": "项目经理审核测试报告".decode('gbk'),
+        "shenheceshibaogao-csfzr": "测试负责人审核测试报告".decode('gbk'),
+        "shenheceshibaogao-csjk":"测试接口人审核测试报告".decode('gbk'),
+        "xfzl-gc": "工程人员确认是否下发指令".decode('gbk'),
+        "100": "关闭".decode('gbk'),
+        "101": "异常关闭".decode('gbk')
+    }
+    return switcher.get(status, status)
+
 
 class PingShenFrame(wx.Frame):
+
     def __init__(self, parent):
         wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"评审系统信息抓取工具", pos=wx.DefaultPosition,
                           size=wx.Size(504, 460), style=wx.DEFAULT_FRAME_STYLE | wx.TAB_TRAVERSAL)
@@ -165,7 +184,7 @@ class PingShenFrame(wx.Frame):
         self.checkBox_submitTime.SetValue(True)
         bSizer61.Add(self.checkBox_submitTime, 0, wx.ALL, 5)
 
-        self.checkBox_closeTime = wx.CheckBox(self.m_panel1, wx.ID_ANY, u"关闭时间", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.checkBox_closeTime = wx.CheckBox(self.m_panel1, wx.ID_ANY, u"最后更新时间", wx.DefaultPosition, wx.DefaultSize, 0)
         self.checkBox_closeTime.SetValue(True)
         bSizer61.Add(self.checkBox_closeTime, 0, wx.ALL, 5)
 
@@ -233,194 +252,231 @@ class PingShenFrame(wx.Frame):
         self._thread = Thread(target=self.run, args=())
         self._thread.daemon = True
 
-
-    def __del__(self):
-        pass
-
-    def close(self, event):
-        self.Close()
-
     def run(self):
         self.updatedisplay("开始抓取".decode('gbk'))
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         username = self.input_username.GetValue()
         password = self.input_password.GetValue()
-        chromedriverPath = os.path.join(os.path.abspath(os.path.curdir), "chromedriver.exe")
-        auditList = []
-        nameList = []
-        productNameList = []
-        submitTimeList = []
-        closeTimeList = []
-        handleTimeList = []
-        statusList = []
-        reportList = []
-        reportNameList = []
-        totalTestTimeList = []
-        summaryList = []
-        start_data = int(self.input_startdate.GetValue())
-        end_date = int(self.input_enddate.GetValue())
-        browser = webdriver.Chrome(chromedriverPath)
-        # browser = webdriver.PhantomJS()
-        url = "http://218.57.146.175/techAudit/welcome.htm"
-        browser.get(url)
-        #登录
-        browser.find_element_by_id("loginName").send_keys(username)
-        browser.find_element_by_id("password").send_keys(password)
-        browser.find_element_by_css_selector(
-            "#loginForm > div > div.communalForm.clear > dl:nth-child(5) > dd > a").click()
-        time.sleep(3)
-        try:
-            testEle = browser.find_element_by_css_selector("#msg")
-            dlg_error = wx.MessageDialog(None, "用户名或者密码输入错误，请重新执行程序".decode('gbk'), "用户名/密码输入错误".decode('gbk'),
-                                         wx.OK | wx.ICON_ERROR | wx.STAY_ON_TOP)
-            browser.close()
-            if dlg_error.ShowModal() == wx.ID_OK:
-                self.Close()
-        except selenium.common.exceptions.NoSuchElementException:
-            pass
-        #进入评审查询界面
-        browser.switch_to.frame('ta')
-        abc = browser.find_element_by_xpath("//div[@id='_easyui_tree_2']")
-        abc.click()
-        browser.implicitly_wait(10)
-        browser.switch_to.default_content()
-        browser.switch_to.frame(1)
-        WebDriverWait(browser, 100).until(
-            ec.element_to_be_clickable((By.XPATH, "//div[@class='datagrid-pager pagination']/table/tbody/tr/td[10]/a")))
-        #选择每页100项显示
-        browser.find_element_by_css_selector("body > div.panel.layout-panel.layout-panel-center > div > div > div > div.datagrid-pager.pagination > table > tbody > tr > td:nth-child(1) > select").find_elements_by_tag_name("option")[3].click()
-        time.sleep(2)
-        totalPagesEle = browser.find_element_by_css_selector(
-            "body > div.panel.layout-panel.layout-panel-center > div > div > div > div.datagrid-pager.pagination > table > tbody > tr > td:nth-child(8) > span")
-        time.sleep(5)
-        totalPagesUnicode = totalPagesEle.text
-        patternPages = re.compile(r'\d+', re.U)
-        totalPages = int(re.findall(patternPages, totalPagesUnicode)[0])
-        for pageCount in range(2, totalPages + 2):
-            lineTotal = len(browser.find_elements_by_css_selector(
-                "body > div.panel.layout-panel.layout-panel-center > div > div > div > div.datagrid-view > div.datagrid-view2 > div.datagrid-body > table > tbody > tr"))
-            for count in range(0, lineTotal):
-                auditNo = browser.find_element_by_css_selector(
-                    "#datagrid-row-r1-2-%d > td:nth-child(2) > div > span" % count).get_attribute("title")
-                submitTimeTemp = browser.find_element_by_css_selector(
-                    "#datagrid-row-r1-2-%d > td:nth-child(7) > div" % count).text.split(" ")[0]
-                submitTimeTempTemp = int("".join(submitTimeTemp.split('-')))
-                if auditNo not in auditList and end_date >= submitTimeTempTemp >= start_data:
-                    name = browser.find_element_by_css_selector(
-                        "#datagrid-row-r1-2-%d > td:nth-child(3) > div > span" % count).get_attribute("title")
-                    productName = browser.find_element_by_css_selector(
-                        "#datagrid-row-r1-2-%d > td:nth-child(5) > div" % count).text
+        start_time = self.input_startdate.GetValue()
+        end_time = self.input_enddate.GetValue()
+        get_data = requests.session()
+        #获取登录页面的lt/execution/eventid信息
+        url_login = "http://218.57.146.175/inspurSSO/login"
+        headers_login = {
+            'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+            'accept-encoding': "gzip, deflate",
+            'accept-language': "zh-CN,zh;q=0.8",
+            'cache-control': "max-age=0",
+            'connection': "keep-alive",
+            'content-type': "application/x-www-form-urlencoded",
+            'host': "218.57.146.175",
+            'upgrade-insecure-requests': "1",
+            'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+        }
+        response_login_test = get_data.get(url_login, headers=headers_login).text
+        data_soup_tobe_filter = BeautifulSoup(response_login_test, "html.parser")
+        lt = data_soup_tobe_filter.find('input',{'name':'lt'})['value']
+        execution = data_soup_tobe_filter.find('input',{'name':'execution'})['value']
+        eventid = data_soup_tobe_filter.find('input',{'name':'_eventId'})['value']
+        #使用以上获取的信息post登录
+        headers_base = {
+        'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+        'Accept-Encoding': "gzip, deflate",
+        'Accept-Language': "zh-CN,zh;q=0.8",
+        'Cache-Control': "max-age=0",
+        'Connection': "keep-alive",
+        'Content-Length': "125",
+        'Content-Type': "application/x-www-form-urlencoded",
+        'Host': "218.57.146.175",
+        'Origin': "http://218.57.146.175",
+        'Referer': "http://218.57.146.175/inspurSSO/login",
+        'Upgrade-Insecure-Requests': "1",
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+        }
+        payload_login = {
+            'username': "%s" % username,
+            'password': "%s" % password,
+            'lt': "%s" % lt,
+            'execution': "%s" % execution,
+            '_eventId': "%s" % eventid
+        }
+        log_in = get_data.post(url_login,headers=headers_base, data=payload_login)
+        #开始获取数据
+        headers_data = {
+        'Accept': "application/json, text/javascript, */*; q=0.01",
+        'Accept-Encoding': "gzip, deflate",
+        'Accept-Language': "zh-CN,zh;q=0.8",
+        'Connection': "keep-alive",
+        'Content-Length': "34",
+        'Content-Type': "application/x-www-form-urlencoded; charset=UTF-8",
+        'Host': "218.57.146.175",
+        'Origin': "http://218.57.146.175",
+        'Referer': "http://218.57.146.175/techAudit/auditList/queryAuditList.htm",
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+        'X-Requested-With': "XMLHttpRequest"
+        }
+        #先用1获取最大数据条数
+        payload_data_test = "rows=1"
+        url_data = "http://218.57.146.175/techAudit/AuditListController/getQueryAuditList.htm?"
+        response_data_test = get_data.post(url_data,headers=headers_data, data=payload_data_test)
+        total_item = re.search(r'"total":(\d+?),', response_data_test.text).groups()[0]
+        #然后使用最大条数直接1页显示
+        payload_data = "rows=%s" % total_item
+        response_data = get_data.post(url_data,headers=headers_data, data=payload_data).text
 
-#                    submitTimeTempTemp = "".join(submitTimeTemp.split('-'))
+        #先获取autidno/id/creattime/updatetime/projectname/productname的原始数据
+        auditno_list_temp = re.findall(r'"auditNo":"(\w+)",', response_data)
+        id_list_temp = re.findall(r'"id":(\d+),', response_data)
+        create_date_list_temp = re.findall(r'"createTime":"(\d+-\d+-\d+)', response_data)#2016-09-23
+        lastupdate_date_list_temp = re.findall(r'"updateTime":"(\d+-\d+-\d+)', response_data)
+        projectname_list_temp = re.findall(r'"projectName":"(.*?)",', response_data)
+        productname_list_temp = re.findall(r'"modeName":"(.*?)",', response_data)
+        status_list_temp = re.findall(r'"status":"(.*?)",', response_data)
+        total_time_list_temp = re.findall(r'"handleTime":"(.*?)"', response_data)
+        #转换要求的开始和结束时间相对1970年1月1日的秒数
+        start_date = time.mktime(time.strptime(start_time,'%Y%m%d'))
+        end_date = time.mktime(time.strptime(end_time,'%Y%m%d'))
 
-                    submitTime = datetime.datetime.fromtimestamp(time.mktime(time.strptime(submitTimeTemp, '%Y-%m-%d')))
-                    closeTimeTemp = \
-                        browser.find_element_by_css_selector(
-                            "#datagrid-row-r1-2-%d > td:nth-child(8) > div" % count).text.split(
-                            " ")[0]
-                    if closeTimeTemp != u'':
-                        closeTime = datetime.datetime.fromtimestamp(
-                            time.mktime(time.strptime(closeTimeTemp, '%Y-%m-%d')))
-                    else:
-                        closeTime = '评审进行中'.decode('gbk')
-                    handleTime = browser.find_element_by_css_selector(
-                        "#datagrid-row-r1-2-%d > td:nth-child(9) > div" % count).text
-                    status = browser.find_element_by_css_selector(
-                        "#datagrid-row-r1-2-%d > td:nth-child(12) > div" % count).text
-                    lineData = browser.find_element_by_css_selector("#datagrid-row-r1-2-%d" % count)
-                    ActionChains(browser).double_click(lineData).perform()
-                    time.sleep(2)
-                    browser.switch_to.default_content()
-                    browser.switch_to.frame(2)
-                    summary = browser.find_element_by_css_selector(
-                        "body > div.panel.layout-panel.layout-panel-center > div > table.TableCssList > tbody > tr:nth-child(9) > td > p:nth-child(1)").text
-                    try:
-                        reportTemp = browser.find_element_by_css_selector(
-                            "form#testUploadForm > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(2) > td:nth-child(1)")
-                        reportList.append("有报告".decode('gbk'))
-                        nameTemp = reportTemp.text[:-6]
-                        reportNameList.append(nameTemp)
-                    except selenium.common.exceptions.NoSuchElementException:
-                        reportList.append("无报告".decode('gbk'))
-                        reportNameList.append("无".decode('gbk'))
-                    try:
-                        timeTestTemp = []
-                        totalTd = browser.find_elements_by_tag_name("td")
-                        for item in totalTd:
-                            textTemp = item.text
-                            if textTemp == "测试".decode('gbk'):
-                                timeTest = item.find_element_by_xpath("parent::tr/td[3]").text
-                                timeTestTemp.append(timeTest)
-                        timeTestData = sumtimesplit(timeTestTemp)
-                        totalTestTimeList.append(timeTestData)
-                    except selenium.common.exceptions.NoSuchElementException:
-                        totalTestTimeList.append("无测试参与".decode('gbk'))
-                    browser.switch_to.default_content()
-                    closeButton = browser.find_element_by_css_selector(
-                        "#tabs > div.tabs-header.tabs-header-noborder > div.tabs-wrap > ul > li.tabs-selected > a.tabs-close")
-                    closeButton.click()
-                    browser.switch_to.frame(1)
-                    auditList.append(auditNo)
-                    nameList.append(name)
-                    productNameList.append(productName)
-                    submitTimeList.append(submitTime)
-                    closeTimeList.append(closeTime)
-                    handleTimeList.append(handleTime)
-                    statusList.append(status)
-                    summaryList.append(summary)
-           # print("当前正在抓取第%d页，总共%d页".decode('gbk') % (pageCount - 1, totalPages))
-            self.updatedisplay("当前正在抓取第%d页，总共%d页".decode('gbk') % (pageCount - 1, totalPages))
-            inNum = browser.find_element_by_css_selector("input.pagination-num")
-            inNum.clear()
-            inNum.send_keys(pageCount)
-            inNum.send_keys(Keys.ENTER)
-            time.sleep(5)
-        browser.quit()
+        #过滤一遍，去除时间不符合要求的
+        autidno_list = []
+        id_list = []
+        create_date_list = []
+        lastupdate_date_list = []
+        projectname_list = []
+        productname_list = []
+        status_list = []
+        url_list = []
+        total_time_list = []
+        report_list = []
+        report_filename_list = []
+        keywords_list = []
+        test_time_list = []
+        for index_creattime, item_creattime in enumerate(create_date_list_temp):
+            now_date =  time.mktime(time.strptime(item_creattime,'%Y-%m-%d'))
+            #print now_date
+            if float(start_date) <= float(now_date) <= float(end_date):
+                create_date_list.append(item_creattime)
+                autidno_list.append(auditno_list_temp[index_creattime])
+                url = "http://218.57.146.175/techAudit/details/viewBill.htm?id=" + id_list_temp[index_creattime]
+                id_list.append(id_list_temp[index_creattime])
+                if len(lastupdate_date_list_temp[index_creattime]) == 0:
+                    lastupdate_date_list.append("评审进行中".decode('gbk'))
+                else:
+                    lastupdate_date_list.append(lastupdate_date_list_temp[index_creattime])
+                projectname_list.append(projectname_list_temp[index_creattime])
+                productname_list.append(productname_list_temp[index_creattime])
+                status_list.append(get_status(status_list_temp[index_creattime]))
+                url_list.append(url)
+                total_time_list.append(total_time_list_temp[index_creattime])
+        self.updatedisplay("共搜索到%s个符合时间要求的评审，请等候抓取数据~~~~".decode('gbk') % len(autidno_list))
+        #分页获取
+        headers_data_all = {
+        'Accept':"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+        'Accept-Encoding':"gzip, deflate",
+        'Accept-Language':"zh-CN,zh;q=0.8",
+        'Connection':"keep-alive",
+        'Host':"218.57.146.175",
+        'Referer':"http://218.57.146.175/techAudit/welcome.htm",
+        'Upgrade-Insecure-Requests':"1",
+        'User-Agent':"Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
+        }
+        #
+        #
+
+        #
+        # status_list_temp = re.findall(r'"status":"(.*?)",', response_data)
+        #
+        # for item_status in status_list_temp:
+        #     if item_status == "100":
+        #         status_list.append("关闭")
+        #     else:
+        #         status_list.append(item_status)
+        #
+
+        #
+        # for item_link in link_list:
+        for index_url, item_url in enumerate(url_list):
+            data_page = get_data.get(item_url, headers=headers_data_all).text
+            data_filter = BeautifulSoup(data_page, "html.parser")
+            self.updatedisplay("正在获取第%s/%s个评审".decode('gbk') % (index_url+1, len(autidno_list)))
+            # 获取附件信息
+            attachment_temp = data_filter.select(".testAttachmenttable > tr:nth-of-type(1) > td:nth-of-type(2) > table:nth-of-type(1) > tr")
+            if len(attachment_temp) <= 1:
+                report_list.append("无报告".decode('gbk'))
+                report_filename_list.append("None")
+            else:
+                report_list.append("有报告".decode('gbk'))
+               # print data_filter
+                filename_temp = []
+                for index_report, item_report in enumerate(attachment_temp):
+                    if index_report != 0:
+                        filename = data_filter.select(".testAttachmenttable > tr:nth-of-type(1) > td:nth-of-type(2) > table:nth-of-type(1) > tr:nth-of-type(2) > td:nth-of-type(1)")[0].contents[0].strip()
+                        filename_temp.append(filename)
+                filename_write = ";".join(filename_temp)
+                report_filename_list.append(filename_write)
+            # 评审要点信息
+            keywords_temp = data_filter.select(".TableCssList > tr:nth-of-type(9) > td:nth-of-type(1)")[0].get_text()
+            keywords_list.append(keywords_temp)
+            # 测试花费时间
+            timeTestTemp = []
+            test_item = data_filter.select("body > div:nth-of-type(1) > table:nth-of-type(3) > tbody > tr")
+            for item_tr in test_item:
+                item_td = item_tr.select("td:nth-of-type(5)")[0].get_text().strip()
+                if item_td == "测试".decode('gbk'):
+                    test_time = item_tr.select("td:nth-of-type(3)")[0].get_text().strip()
+                    timeTestTemp.append(test_time)
+            if len(timeTestTemp) == 0:
+                timeTestData = "None"
+            else:
+                timeTestData = sumtimesplit(timeTestTemp)
+            test_time_list.append(timeTestData)
+
+
         # 如下是数据处理，与浏览器不再发生关系
         TitleItem = ['评审编号'.decode('gbk'), '评审名称'.decode('gbk'), '项目名称'.decode('gbk'), '提交时间'.decode('gbk'),
-                     '关闭时间'.decode('gbk'), '处理时长'.decode('gbk'), '测试花费时间'.decode('gbk'), '状态'.decode('gbk'),
+                     '最后更新时间'.decode('gbk'), '处理时长'.decode('gbk'), '测试花费时间'.decode('gbk'), '状态'.decode('gbk'),
                      '是否有报告附件'.decode('gbk'), '报告名称'.decode('gbk'), '评审要点'.decode('gbk')]
         timestamp = time.strftime('%Y%m%d', time.localtime())
         WorkBook = xlsxwriter.Workbook("评审系统抓取信息-%s.xlsx".decode('gbk') % timestamp)
         SheetOne = WorkBook.add_worksheet('评审系统抓取信息'.decode('gbk'))
         formatOne = WorkBook.add_format()
         formatOne.set_border(1)
-        formatTwo = WorkBook.add_format()
-        formatTwo.set_border(1)
-        formatTwo.set_num_format('yy/mm/dd')
+
         SheetOne.set_column('A:J', 14)
         for i in range(0, len(TitleItem)):
             SheetOne.write(0, i, TitleItem[i], formatOne)
-        lineCount = 1
-        for index, item in enumerate(auditList):
+
+        for index_write, item_write in enumerate(autidno_list):
             if self.checkBox_audit.GetValue():
-                SheetOne.write(lineCount, 0, auditList[index], formatOne)
+                SheetOne.write(1 + index_write, 0, item_write, formatOne)
             if self.checkBox_name.GetValue():
-                SheetOne.write(lineCount, 1, nameList[index], formatOne)
+                SheetOne.write(1 + index_write, 1, projectname_list[index_write], formatOne)
             if self.checkBox_productName.GetValue():
-                SheetOne.write(lineCount, 2, productNameList[index], formatOne)
+                SheetOne.write(1 + index_write, 2, productname_list[index_write], formatOne)
             if self.checkBox_submitTime.GetValue():
-                SheetOne.write(lineCount, 3, submitTimeList[index], formatTwo)
+                SheetOne.write_datetime(1 + index_write, 3, datetime.datetime.strptime(create_date_list[index_write], '%Y-%m-%d'), WorkBook.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
             if self.checkBox_closeTime.GetValue():
-                SheetOne.write(lineCount, 4, closeTimeList[index], formatTwo)
+                SheetOne.write(1 + index_write, 4, datetime.datetime.strptime(lastupdate_date_list[index_write], '%Y-%m-%d'), WorkBook.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
             if self.checkBox_handleTime.GetValue():
-                SheetOne.write(lineCount, 5, handleTimeList[index], formatOne)
+                SheetOne.write(1 + index_write, 5, total_time_list[index_write], formatOne)
             if self.checkBox_totalTestTime.GetValue():
-                SheetOne.write(lineCount, 6, totalTestTimeList[index], formatOne)
+                SheetOne.write(1 + index_write, 6, test_time_list[index_write], formatOne)
             if self.checkBox_status.GetValue():
-                SheetOne.write(lineCount, 7, statusList[index], formatOne)
+                SheetOne.write(1 + index_write, 7, status_list[index_write], formatOne)
             if self.checkBox_report.GetValue():
-                SheetOne.write(lineCount, 8, reportList[index], formatOne)
-                SheetOne.write(lineCount, 9, reportNameList[index], formatOne)
+                SheetOne.write(1 + index_write, 8, report_list[index_write], formatOne)
+                SheetOne.write(1 + index_write, 9, report_filename_list[index_write], formatOne)
             if self.checkBox_summary.GetValue():
-                SheetOne.write(lineCount, 10, summaryList[index], formatOne)
-            lineCount += 1
+                SheetOne.write(1 + index_write, 10, keywords_list[index_write], formatOne)
         WorkBook.close()
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
-        self.updatedisplay("抓到%s个结果！已经将结果写入《评审系统抓取信息.xlsx》，请自行查阅！请点击EXIT退出程序！".decode('gbk') % len(auditList))
+        self.updatedisplay("抓到%s个结果！已经将结果写入《评审系统抓取信息-%s.xlsx》，请自行查阅！请点击EXIT退出程序！".decode('gbk') % (len(autidno_list), timestamp))
         time.sleep(1)
         self.updatedisplay("Finished")
         self.button_go.Enable()
+
+    def close(self, event):
+        self.Close()
 
     def onbutton(self, event):
         self._thread.start()
@@ -437,7 +493,6 @@ class PingShenFrame(wx.Frame):
         else:
             self.textctrl_display.AppendText("%s".decode('gbk') % t)
         self.textctrl_display.AppendText(os.linesep)
-
 
 if __name__ == '__main__':
     app = wx.App()
