@@ -263,6 +263,7 @@ class PingShenFrame(wx.Frame):
         # browser = webdriver.PhantomJS()
         url = "http://218.57.146.175/techAudit/welcome.htm"
         browser.get(url)
+        #登录
         browser.find_element_by_id("loginName").send_keys(username)
         browser.find_element_by_id("password").send_keys(password)
         browser.find_element_by_css_selector(
@@ -277,6 +278,7 @@ class PingShenFrame(wx.Frame):
                 self.Close()
         except selenium.common.exceptions.NoSuchElementException:
             pass
+        #进入评审查询界面
         browser.switch_to.frame('ta')
         abc = browser.find_element_by_xpath("//div[@id='_easyui_tree_2']")
         abc.click()
@@ -285,6 +287,9 @@ class PingShenFrame(wx.Frame):
         browser.switch_to.frame(1)
         WebDriverWait(browser, 100).until(
             ec.element_to_be_clickable((By.XPATH, "//div[@class='datagrid-pager pagination']/table/tbody/tr/td[10]/a")))
+        #选择每页100项显示
+        browser.find_element_by_css_selector("body > div.panel.layout-panel.layout-panel-center > div > div > div > div.datagrid-pager.pagination > table > tbody > tr > td:nth-child(1) > select").find_elements_by_tag_name("option")[3].click()
+        time.sleep(2)
         totalPagesEle = browser.find_element_by_css_selector(
             "body > div.panel.layout-panel.layout-panel-center > div > div > div > div.datagrid-pager.pagination > table > tbody > tr > td:nth-child(8) > span")
         time.sleep(5)
