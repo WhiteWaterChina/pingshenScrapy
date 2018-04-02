@@ -398,6 +398,7 @@ class PingShenFrame(wx.Frame):
         for index_url, item_url in enumerate(url_list):
             data_page = get_data.get(item_url, headers=headers_data_all).text
             data_filter = BeautifulSoup(data_page, "html.parser")
+            # print data_filter
             self.updatedisplay("正在获取第%s/%s个评审".decode('gbk') % (index_url+1, len(autidno_list)))
             # 获取附件信息
             attachment_temp = data_filter.select(".testAttachmenttable > tr:nth-of-type(1) > td:nth-of-type(2) > table:nth-of-type(1) > tr")
@@ -415,21 +416,28 @@ class PingShenFrame(wx.Frame):
                 filename_write = ";".join(filename_temp)
                 report_filename_list.append(filename_write)
             # 评审要点信息
-            keywords_temp = data_filter.select(".TableCssList > tr:nth-of-type(9) > td:nth-of-type(1)")[0].get_text()
+            try:
+                keywords_temp = data_filter.select(".TableCssList > tr:nth-of-type(9) > td:nth-of-type(1)")[0].get_text()
+            except IndexError:
+                keywords_temp = data_filter.select(".TableCssList > tr:nth-of-type(7) > td:nth-of-type(1)")[0].get_text()
+           # print  keywords_temp
             keywords_list.append(keywords_temp)
             # 测试花费时间
             timeTestTemp = []
-            test_item = data_filter.select("body > div:nth-of-type(1) > table:nth-of-type(3) > tbody > tr")
-            for item_tr in test_item:
-                item_td = item_tr.select("td:nth-of-type(5)")[0].get_text().strip()
-                if item_td == "测试".decode('gbk'):
-                    test_time = item_tr.select("td:nth-of-type(3)")[0].get_text().strip()
-                    timeTestTemp.append(test_time)
-            if len(timeTestTemp) == 0:
-                timeTestData = "None"
-            else:
-                timeTestData = sumtimesplit(timeTestTemp)
-            test_time_list.append(timeTestData)
+            try:
+                test_item = data_filter.select("body > div:nth-of-type(1) > table:nth-of-type(3) > tbody > tr")
+                for item_tr in test_item:
+                    item_td = item_tr.select("td:nth-of-type(5)")[0].get_text().strip()
+                    if item_td == "测试".decode('gbk'):
+                        test_time = item_tr.select("td:nth-of-type(3)")[0].get_text().strip()
+                        timeTestTemp.append(test_time)
+                if len(timeTestTemp) == 0:
+                    timeTestData = "None"
+                else:
+                    timeTestData = sumtimesplit(timeTestTemp)
+                test_time_list.append(timeTestData)
+            except IndexError:
+                test_time_list.append("None")
 
 
         # 如下是数据处理，与浏览器不再发生关系
@@ -443,31 +451,33 @@ class PingShenFrame(wx.Frame):
         formatOne.set_border(1)
 
         SheetOne.set_column('A:J', 14)
+        already_write_list = []
         for i in range(0, len(TitleItem)):
             SheetOne.write(0, i, TitleItem[i], formatOne)
-
         for index_write, item_write in enumerate(autidno_list):
-            if self.checkBox_audit.GetValue():
-                SheetOne.write(1 + index_write, 0, item_write, formatOne)
-            if self.checkBox_name.GetValue():
-                SheetOne.write(1 + index_write, 1, projectname_list[index_write], formatOne)
-            if self.checkBox_productName.GetValue():
-                SheetOne.write(1 + index_write, 2, productname_list[index_write], formatOne)
-            if self.checkBox_submitTime.GetValue():
-                SheetOne.write_datetime(1 + index_write, 3, datetime.datetime.strptime(create_date_list[index_write], '%Y-%m-%d'), WorkBook.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
-            if self.checkBox_closeTime.GetValue():
-                SheetOne.write(1 + index_write, 4, datetime.datetime.strptime(lastupdate_date_list[index_write], '%Y-%m-%d'), WorkBook.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
-            if self.checkBox_handleTime.GetValue():
-                SheetOne.write(1 + index_write, 5, total_time_list[index_write], formatOne)
-            if self.checkBox_totalTestTime.GetValue():
-                SheetOne.write(1 + index_write, 6, test_time_list[index_write], formatOne)
-            if self.checkBox_status.GetValue():
-                SheetOne.write(1 + index_write, 7, status_list[index_write], formatOne)
-            if self.checkBox_report.GetValue():
-                SheetOne.write(1 + index_write, 8, report_list[index_write], formatOne)
-                SheetOne.write(1 + index_write, 9, report_filename_list[index_write], formatOne)
-            if self.checkBox_summary.GetValue():
-                SheetOne.write(1 + index_write, 10, keywords_list[index_write], formatOne)
+            if item_write not in already_write_list:
+                already_write_list.append(item_write)
+                if self.checkBox_audit.GetValue():
+                    SheetOne.write(1 + index_write, 0, item_write, formatOne)
+                if self.checkBox_name.GetValue():
+                    SheetOne.write(1 + index_write, 1, projectname_list[index_write], formatOne)
+                if self.checkBox_productName.GetValue():
+                    SheetOne.write(1 + index_write, 2, productname_list[index_write], formatOne)
+                if self.checkBox_submitTime.GetValue():
+                    SheetOne.write_datetime(1 + index_write, 3, datetime.datetime.strptime(create_date_list[index_write], '%Y-%m-%d'), WorkBook.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
+                if self.checkBox_closeTime.GetValue():
+                    SheetOne.write(1 + index_write, 4, datetime.datetime.strptime(lastupdate_date_list[index_write], '%Y-%m-%d'), WorkBook.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
+                if self.checkBox_handleTime.GetValue():
+                    SheetOne.write(1 + index_write, 5, total_time_list[index_write], formatOne)
+                if self.checkBox_totalTestTime.GetValue():
+                    SheetOne.write(1 + index_write, 6, test_time_list[index_write], formatOne)
+                if self.checkBox_status.GetValue():
+                    SheetOne.write(1 + index_write, 7, status_list[index_write], formatOne)
+                if self.checkBox_report.GetValue():
+                    SheetOne.write(1 + index_write, 8, report_list[index_write], formatOne)
+                    SheetOne.write(1 + index_write, 9, report_filename_list[index_write], formatOne)
+                if self.checkBox_summary.GetValue():
+                    SheetOne.write(1 + index_write, 10, keywords_list[index_write], formatOne)
         WorkBook.close()
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         self.updatedisplay("抓到%s个结果！已经将结果写入《评审系统抓取信息-%s.xlsx》，请自行查阅！请点击EXIT退出程序！".decode('gbk') % (len(autidno_list), timestamp))
