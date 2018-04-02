@@ -419,7 +419,10 @@ class PingShenFrame(wx.Frame):
             try:
                 keywords_temp = data_filter.select(".TableCssList > tr:nth-of-type(9) > td:nth-of-type(1)")[0].get_text()
             except IndexError:
-                keywords_temp = data_filter.select(".TableCssList > tr:nth-of-type(7) > td:nth-of-type(1)")[0].get_text()
+                try:
+                    keywords_temp = data_filter.select(".TableCssList > tr:nth-of-type(7) > td:nth-of-type(1)")[0].get_text()
+                except IndexError:
+                    keywords_temp = "None"
            # print  keywords_temp
             keywords_list.append(keywords_temp)
             # 测试花费时间
