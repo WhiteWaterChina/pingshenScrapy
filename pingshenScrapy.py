@@ -14,6 +14,7 @@ import wx
 import urllib2
 import json
 
+ver="20180407"
 def sumtimesplit(strtimelist):
     tempTimeFunc = []
     totalTime = int(0)
@@ -59,7 +60,7 @@ def get_status(status):
 class PingShenFrame(wx.Frame):
 
     def __init__(self, parent):
-        wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"评审系统信息抓取工具", pos=wx.DefaultPosition,
+        wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=u"评审系统信息抓取工具-Version:%s" % ver, pos=wx.DefaultPosition,
                           size=wx.Size(504, 460), style=wx.DEFAULT_FRAME_STYLE | wx.TAB_TRAVERSAL)
 
         self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
