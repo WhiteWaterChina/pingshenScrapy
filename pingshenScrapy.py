@@ -11,8 +11,10 @@ import time
 import datetime
 from threading import Thread
 import wx
+import base64
 import urllib2
 import json
+
 
 ver="20180407"
 def sumtimesplit(strtimelist):
@@ -257,7 +259,7 @@ class PingShenFrame(wx.Frame):
         self.updatedisplay("开始抓取".decode('gbk'))
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         username = self.input_username.GetValue()
-        password = self.input_password.GetValue()
+        password = base64.b64encode(self.input_password.GetValue())
         start_time = self.input_startdate.GetValue()
         end_time = self.input_enddate.GetValue()
         get_data = requests.session()
@@ -381,21 +383,7 @@ class PingShenFrame(wx.Frame):
         'Upgrade-Insecure-Requests':"1",
         'User-Agent':"Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
         }
-        #
-        #
 
-        #
-        # status_list_temp = re.findall(r'"status":"(.*?)",', response_data)
-        #
-        # for item_status in status_list_temp:
-        #     if item_status == "100":
-        #         status_list.append("关闭")
-        #     else:
-        #         status_list.append(item_status)
-        #
-
-        #
-        # for item_link in link_list:
         for index_url, item_url in enumerate(url_list):
             data_page = get_data.get(item_url, headers=headers_data_all).text
             data_filter = BeautifulSoup(data_page, "html.parser")

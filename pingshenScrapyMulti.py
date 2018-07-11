@@ -14,7 +14,7 @@ import wx
 from multiprocessing import Pool
 import base64
 
-ver = "20180407"
+ver = "20180711"
 
 
 # def login(username, password):
