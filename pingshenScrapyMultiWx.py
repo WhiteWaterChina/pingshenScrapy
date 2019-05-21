@@ -16,7 +16,7 @@ from multiprocessing import Pool
 import base64
 
 
-ver = "20190114"
+ver = "Ward Yan-20190521"
 
 
 def sumtimesplit(strtimelist):
@@ -24,46 +24,47 @@ def sumtimesplit(strtimelist):
     totalTime = int(0)
     for item in strtimelist:
         if re.search(u'天', item):
-            timeList = item.split("天".decode('gbk'))
+            timeList = item.split("天")
             timeOne = int(timeList[0]) * 86400
-            timeTwo = int(timeList[1].split("小时".decode('gbk'))[0]) * 3600
+            timeTwo = int(timeList[1].split("小时")[0]) * 3600
             totalTimeTemp = timeOne + timeTwo
             tempTimeFunc.append(totalTimeTemp)
         else:
-            timeList = item.split("小时".decode('gbk'))
+            timeList = item.split("小时")
             totalTimeTemp = int(timeList[0]) * 3600
             tempTimeFunc.append(totalTimeTemp)
     for item in tempTimeFunc:
         totalTime += item
     dayTime, hourtimeTemp = divmod(totalTime, 86400)
     hourTime = divmod(hourtimeTemp, 3600)[0]
-    dataReturn = "%d天%d小时".decode('gbk') % (dayTime, hourTime)
+    dataReturn = "{}天{}小时".format(dayTime, hourTime)
     return dataReturn
 
 
 def get_status(status):
     switcher = {
-        "0": "保存".decode('gbk'),
-        "1": "提交".decode('gbk'),
-        "shenhepeizhi-sq": "售前审核配置".decode('gbk'),
-        "shenhe-chanpinjingli": "产品经理审核".decode('gbk'),
-        "querenxuanpei-ddy": "订单员确认选配".decode('gbk'),
-        "shenhepingshen-yf": "研发接口人审核评审".decode('gbk'),
-        "shenhepingshen-csjk": "测试接口人审核评审".decode('gbk'),
-        "ceshi-cs": "测试人员测试".decode('gbk'),
-        "shenheceshibaogao-yf": "研发接口审核测试报告".decode('gbk'),
-        "shenheceshibaogao-xmjl": "项目经理审核测试报告".decode('gbk'),
-        "shenheceshibaogao-csfzr": "测试负责人审核测试报告".decode('gbk'),
-        "shenheceshibaogao-csjk": "测试接口人审核测试报告".decode('gbk'),
-        "xfzl-gc": "工程人员确认是否下发指令".decode('gbk'),
-        "100": "关闭".decode('gbk'),
-        "101": "异常关闭".decode('gbk'),
-        "product-verification": "生产验证".decode('gbk'),
-        "vm-audit": "VM审核".decode('gbk'),
-        "exec-test": "执行测试".decode('gbk'),
-        "os-comp-test": "OS兼容性测试".decode('gbk'),
-        "audit-submit": "修改待提交".decode('gbk'),
-        "npi-audit": "NPI处理".decode('gbk')
+        "0": "保存",
+        "1": "提交",
+        "shenhepeizhi-sq": "售前审核配置",
+        "shenhe-chanpinjingli": "产品经理审核",
+        "querenxuanpei-ddy": "订单员确认选配",
+        "shenhepingshen-yf": "研发接口人审核评审",
+        "shenhepingshen-csjk": "测试接口人审核评审",
+        "ceshi-cs": "测试人员测试",
+        "shenheceshibaogao-yf": "研发接口审核测试报告",
+        "shenheceshibaogao-xmjl": "项目经理审核测试报告",
+        "shenheceshibaogao-csfzr": "测试负责人审核测试报告",
+        "shenheceshibaogao-csjk": "测试接口人审核测试报告",
+        "xfzl-gc": "工程人员确认是否下发指令",
+        "100": "关闭",
+        "101": "异常关闭",
+        "product-verification": "生产验证",
+        "vm-audit": "VM审核",
+        "exec-test": "执行测试",
+        "os-comp-test": "OS兼容性测试",
+        "audit-submit": "修改待提交",
+        "npi-audit": "NPI处理",
+        "vm-test-audit": "VM审核测试结果",
     }
     return switcher.get(status, status)
 
@@ -81,15 +82,15 @@ def get_detail(link, login_session):
     }
     get_page = login_session.get(link, headers=headers_data_all)
     data_page = get_page.text
-    print("Get link:%s with return code %s" % (link, get_page.status_code))
+    print("Get link:{} with return code {}".format(link, get_page.status_code))
     data_filter = BeautifulSoup(data_page, "html.parser")
     # 获取附件信息
     attachment_temp = data_filter.select(".testAttachmenttable > tr:nth-of-type(1) > td:nth-of-type(2) > table:nth-of-type(1) > tr")
     if len(attachment_temp) <= 1:
-        has_report = "无报告".decode('gbk')
+        has_report = "无报告"
         report_filename = "None"
     else:
-        has_report = "有报告".decode('gbk')
+        has_report = "有报告"
         filename_temp = []
         for index_report, item_report in enumerate(attachment_temp):
             if index_report != 0:
@@ -112,7 +113,7 @@ def get_detail(link, login_session):
         test_item = data_filter.select("body > div:nth-of-type(1) > table:nth-of-type(3) > tbody > tr")
         for item_tr in test_item:
             item_td = item_tr.select("td:nth-of-type(5)")[0].get_text().strip()
-            if item_td == "测试".decode('gbk'):
+            if item_td == "测试":
                 test_time = item_tr.select("td:nth-of-type(3)")[0].get_text().strip()
                 timeTestTemp.append(test_time)
         if len(timeTestTemp) == 0:
@@ -365,18 +366,15 @@ class PingShenFrame(wx.Frame):
         self.button_go.Bind(wx.EVT_BUTTON, self.onbutton)
         self.button_exit.Bind(wx.EVT_BUTTON, self.close)
 
-        self._thread = Thread(target=self.run, args=())
-        self._thread.daemon = True
-
     def __del__(self):
         pass
 
     # Virtual event handlers, overide them in your derived class
     def get_productname(self, event):
-        self.updatedisplay("开始获取项目名称信息,请耐心等待".decode('gbk'))
+        self.updatedisplay("开始获取项目名称信息,请耐心等待")
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         username = self.input_username.GetValue()
-        password = base64.b64encode(self.input_password.GetValue())
+        password = base64.b64encode(self.input_password.GetValue().encode()).decode()
         # 登录
         headers_base = {
             'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -412,11 +410,11 @@ class PingShenFrame(wx.Frame):
         execution = data_soup_tobe_filter.find('input', {'name': 'execution'})['value']
         eventid = data_soup_tobe_filter.find('input', {'name': '_eventId'})['value']
         payload_login = {
-            'username': "%s" % username,
-            'password': "%s" % password,
-            'lt': "%s" % lt,
-            'execution': "%s" % execution,
-            '_eventId': "%s" % eventid
+            'username': "{}".format(username),
+            'password': "{}".format(password),
+            'lt': "{}".format(lt),
+            'execution': "{}".format(execution),
+            '_eventId': "{}".format(eventid)
         }
         # 使用以上获取的信息post登录
         login_session.post(url_login, headers=headers_base, data=payload_login)
@@ -441,9 +439,9 @@ class PingShenFrame(wx.Frame):
         total_item = re.search(r'"total":(\d+?),', response_data_test.text).groups()[0]
         # 抓取按照每页5000条来进行，根据最大数量/5000来计算抓取的页面次数pages_number
         if int(total_item) % 5000 == 0:
-            pages_number = int(total_item) / 5000
+            pages_number = int(total_item) // 5000
         else:
-            pages_number = int(total_item) / 5000 + 1
+            pages_number = int(total_item) // 5000 + 1
 
         productname_list_all = []
 
@@ -461,15 +459,18 @@ class PingShenFrame(wx.Frame):
                     productname_list_all.append(item_productname_temp)
         for item in productname_list_all:
             self.listbox_productname.Append(item)
-        self.updatedisplay("抓取项目信息结束,请在如下选择需要抓取信息的项目名称，然后点击GO开始抓取！".decode('gbk'))
+        self.updatedisplay("抓取项目信息结束,请在如下选择需要抓取信息的项目名称，然后点击GO开始抓取！")
+        diag_finish_project = wx.MessageDialog(None, "获取项目信息完成！请选择需要抓取信息的项目名称，然后点击GO开始抓取！", '提示',
+                                               wx.OK | wx.ICON_INFORMATION | wx.STAY_ON_TOP)
+        diag_finish_project.ShowModal()
 
-    def run(self):
+    def run_all(self):
         self.button_go.Disable()
-        self.updatedisplay("开始抓取，请耐心等待...".decode('gbk'))
+        self.updatedisplay("开始抓取，请耐心等待...")
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         # 获取用户名和密码
         username = self.input_username.GetValue()
-        password = base64.b64encode(self.input_password.GetValue())
+        password = base64.b64encode(self.input_password.GetValue().encode()).decode()
         # 获取开始和结束时间
         start_time = self.input_startdate.GetValue()
         end_time = self.input_enddate.GetValue()
@@ -513,11 +514,11 @@ class PingShenFrame(wx.Frame):
         execution = data_soup_tobe_filter.find('input', {'name': 'execution'})['value']
         eventid = data_soup_tobe_filter.find('input', {'name': '_eventId'})['value']
         payload_login = {
-            'username': "%s" % username,
-            'password': "%s" % password,
-            'lt': "%s" % lt,
-            'execution': "%s" % execution,
-            '_eventId': "%s" % eventid
+            'username': "{}".format(username),
+            'password': "{}".format(password),
+            'lt': "{}".format(lt),
+            'execution': "{}".format(execution),
+            '_eventId': "{}".format(eventid)
         }
         # 使用以上获取的信息post登录
         login_session.post(url_login, headers=headers_base, data=payload_login)
@@ -542,9 +543,9 @@ class PingShenFrame(wx.Frame):
         total_item = re.search(r'"total":(\d+?),', response_data_test.text).groups()[0]
         # 抓取按照每页5000条来进行，根据最大数量/5000来计算抓取的页面次数pages_number
         if int(total_item) % 5000 == 0:
-            pages_number = int(total_item) / 5000
+            pages_number = int(total_item) // 5000
         else:
-            pages_number = int(total_item) / 5000 + 1
+            pages_number = int(total_item) // 5000 + 1
         auditno_list = []
         id_list = []
         create_date_list = []
@@ -636,17 +637,16 @@ class PingShenFrame(wx.Frame):
         print("status_list:{}".format(len(status_list)))
         print("url_list:{}".format(len(url_list)))
         print("total_time_list:{}".format(len(total_time_list)))
-        self.updatedisplay("共搜索到%s个符合时间和项目名称要求的评审，请等候抓取数据~~~~".decode('gbk') % len(auditno_list))
+        self.updatedisplay("共搜索到{}个符合时间和项目名称要求的评审，请等候抓取数据~~~~".format(len(auditno_list)))
 
         # 获取每个评审的详细页面信息
         dict_data_detail = {}
         for item_1 in id_list:
-            dict_data_detail["%s" % item_1] = []
+            dict_data_detail["{}".format(item_1)] = []
         temp_detail = []
         pool_detail = Pool()
         for index, item_2 in enumerate(url_list):
             temp_detail.append(pool_detail.apply_async(get_detail, args=(item_2, login_session)))
-            # self.updatedisplay("已经开始抓取%s/%s".decode('gbk') %(str(url_list.index(item_2) + 1), str(len(url_list))))
         pool_detail.close()
         pool_detail.join()
         # return link, has_report, report_filename, keywords, test_time
@@ -657,27 +657,27 @@ class PingShenFrame(wx.Frame):
                 num = data_detail_temp[0].split("=")[-1]
                 index_to_log = id_list.index(num)
                 # 评审编号 audit_number
-                dict_data_detail["%s" % num].append(auditno_list[index_to_log])
+                dict_data_detail["{}".format(num)].append(auditno_list[index_to_log])
                 # 评审名称 project name
-                dict_data_detail["%s" % num].append(projectname_list[index_to_log])
+                dict_data_detail["{}".format(num)].append(projectname_list[index_to_log])
                 # 产品名称 product name
-                dict_data_detail["%s" % num].append(productname_list[index_to_log])
+                dict_data_detail["{}".format(num)].append(productname_list[index_to_log])
                 # 提交时间 create time
-                dict_data_detail["%s" % num].append(create_date_list[index_to_log])
+                dict_data_detail["{}".format(num)].append(create_date_list[index_to_log])
                 # 关闭时间 close time
-                dict_data_detail["%s" % num].append(close_date_list[index_to_log])
+                dict_data_detail["{}".format(num)].append(close_date_list[index_to_log])
                 # 总处理时长 total time
-                dict_data_detail["%s" % num].append(total_time_list[index_to_log])
+                dict_data_detail["{}".format(num)].append(total_time_list[index_to_log])
                 # 测试花费时间 test time
-                dict_data_detail["%s" % num].append(data_detail_temp[4])
+                dict_data_detail["{}".format(num)].append(data_detail_temp[4])
                 # 状态 status
-                dict_data_detail["%s" % num].append(status_list[index_to_log])
+                dict_data_detail["{}".format(num)].append(status_list[index_to_log])
                 # 是否有报告 has_report
-                dict_data_detail["%s" % num].append(data_detail_temp[1])
+                dict_data_detail["{}".format(num)].append(data_detail_temp[1])
                 # 报告名称， report filename
-                dict_data_detail["%s" % num].append(data_detail_temp[2])
+                dict_data_detail["{}".format(num)].append(data_detail_temp[2])
                 # 评审要点 keywords
-                dict_data_detail["%s" % num].append(data_detail_temp[3])
+                dict_data_detail["{}".format(num)].append(data_detail_temp[3])
 
         autidno_list_write = []
         projectname_list_write = []
@@ -705,12 +705,10 @@ class PingShenFrame(wx.Frame):
             keywords_list_write.append(dict_data_detail[item_write][10])
 
         # 如下是本地数据处理，与浏览器不再发生关系
-        TitleItem = ['评审编号'.decode('gbk'), '评审名称'.decode('gbk'), '项目名称'.decode('gbk'), '提交时间'.decode('gbk'),
-                     '最后更新时间'.decode('gbk'), '处理时长'.decode('gbk'), '测试花费时间'.decode('gbk'), '状态'.decode('gbk'),
-                     '是否有报告附件'.decode('gbk'), '报告名称'.decode('gbk'), '评审要点'.decode('gbk')]
+        TitleItem = ['评审编号', '评审名称', '项目名称', '提交时间', '最后更新时间', '处理时长', '测试花费时间', '状态', '是否有报告附件', '报告名称', '评审要点']
         timestamp = time.strftime('%Y%m%d', time.localtime())
-        WorkBook = xlsxwriter.Workbook("评审系统抓取信息-%s.xlsx".decode('gbk') % timestamp)
-        SheetOne = WorkBook.add_worksheet('评审系统抓取信息'.decode('gbk'))
+        WorkBook = xlsxwriter.Workbook("评审系统抓取信息-{}.xlsx".format(timestamp))
+        SheetOne = WorkBook.add_worksheet('评审系统抓取信息')
         formatOne = WorkBook.add_format()
         formatOne.set_border(1)
 
@@ -719,38 +717,39 @@ class PingShenFrame(wx.Frame):
         for i in range(0, len(TitleItem)):
             SheetOne.write(0, i, TitleItem[i], formatOne)
         for index_write, item_write in enumerate(autidno_list_write):
-            if item_write not in already_write_list:
-                already_write_list.append(item_write)
-                if self.checkBox_audit.GetValue():
-                    SheetOne.write(1 + index_write, 0, item_write, formatOne)
-                if self.checkBox_name.GetValue():
-                    SheetOne.write(1 + index_write, 1, projectname_list_write[index_write], formatOne)
-                if self.checkBox_productName.GetValue():
-                    SheetOne.write(1 + index_write, 2, productname_list_write[index_write], formatOne)
-                if self.checkBox_submitTime.GetValue():
-                    SheetOne.write_datetime(1 + index_write, 3,
-                                            datetime.datetime.strptime(create_date_list_write[index_write], '%Y-%m-%d'),
-                                            WorkBook.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
-                if self.checkBox_closeTime.GetValue():
-                    if re.search(r'\d+', close_date_list_write[index_write]) is None:
-                        SheetOne.write(1 + index_write, 4, "评审进行中".decode('gbk'), formatOne)
-                    else:
-                        SheetOne.write(1 + index_write, 4, datetime.datetime.strptime(close_date_list_write[index_write], '%Y-%m-%d'), WorkBook.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
-                if self.checkBox_handleTime.GetValue():
-                    SheetOne.write(1 + index_write, 5, total_time_list_write[index_write], formatOne)
-                if self.checkBox_totalTestTime.GetValue():
-                    SheetOne.write(1 + index_write, 6, test_time_list_write[index_write], formatOne)
-                if self.checkBox_status.GetValue():
-                    SheetOne.write(1 + index_write, 7, status_list_write[index_write], formatOne)
-                if self.checkBox_report.GetValue():
-                    SheetOne.write(1 + index_write, 8, has_report_list_write[index_write], formatOne)
-                    SheetOne.write(1 + index_write, 9, report_filename_list_write[index_write], formatOne)
-                if self.checkBox_summary.GetValue():
-                    SheetOne.write(1 + index_write, 10, keywords_list_write[index_write], formatOne)
+            if len(item_write) != 0:
+                if item_write not in already_write_list:
+                    already_write_list.append(item_write)
+                    if self.checkBox_audit.GetValue():
+                        SheetOne.write(1 + index_write, 0, item_write, formatOne)
+                    if self.checkBox_name.GetValue():
+                        SheetOne.write(1 + index_write, 1, projectname_list_write[index_write], formatOne)
+                    if self.checkBox_productName.GetValue():
+                        SheetOne.write(1 + index_write, 2, productname_list_write[index_write], formatOne)
+                    if self.checkBox_submitTime.GetValue():
+                        SheetOne.write_datetime(1 + index_write, 3,
+                                                datetime.datetime.strptime(create_date_list_write[index_write], '%Y-%m-%d'),
+                                                WorkBook.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
+                    if self.checkBox_closeTime.GetValue():
+                        if re.search(r'\d+', close_date_list_write[index_write]) is None:
+                            SheetOne.write(1 + index_write, 4, "评审进行中", formatOne)
+                        else:
+                            SheetOne.write(1 + index_write, 4, datetime.datetime.strptime(close_date_list_write[index_write], '%Y-%m-%d'), WorkBook.add_format({'num_format': 'yyyy-mm-dd', 'border': 1}))
+                    if self.checkBox_handleTime.GetValue():
+                        SheetOne.write(1 + index_write, 5, total_time_list_write[index_write], formatOne)
+                    if self.checkBox_totalTestTime.GetValue():
+                        SheetOne.write(1 + index_write, 6, test_time_list_write[index_write], formatOne)
+                    if self.checkBox_status.GetValue():
+                        SheetOne.write(1 + index_write, 7, status_list_write[index_write], formatOne)
+                    if self.checkBox_report.GetValue():
+                        SheetOne.write(1 + index_write, 8, has_report_list_write[index_write], formatOne)
+                        SheetOne.write(1 + index_write, 9, report_filename_list_write[index_write], formatOne)
+                    if self.checkBox_summary.GetValue():
+                        SheetOne.write(1 + index_write, 10, keywords_list_write[index_write], formatOne)
         WorkBook.close()
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         self.updatedisplay(
-            "抓到%s个结果！已经将结果写入《评审系统抓取信息-%s.xlsx》，请自行查阅！请点击EXIT退出程序！".decode('gbk') % (len(auditno_list), timestamp))
+            "抓到{}个结果！已经将结果写入《评审系统抓取信息-{}.xlsx》，请自行查阅！请点击EXIT退出程序！".format(len(already_write_list), timestamp))
         time.sleep(1)
         self.updatedisplay("Finished")
         self.button_go.Enable()
@@ -758,20 +757,21 @@ class PingShenFrame(wx.Frame):
     def close(self, event):
         self.Close()
 
+    def newthread(self):
+        Thread(target=self.run_all).start()
+
     def onbutton(self, event):
-        self._thread.start()
-        self.started = True
-        self.button_go = event.GetEventObject()
         self.button_go.Disable()
+        self.newthread()
 
     def updatedisplay(self, msg):
         t = msg
         if isinstance(t, int):
-            self.textctrl_display.AppendText("完成第%s页".decode('gbk') % t)
+            self.textctrl_display.AppendText("完成第{}页".format(t))
         elif t == "Finished":
             self.button_go.Enable()
         else:
-            self.textctrl_display.AppendText("%s".decode('gbk') % t)
+            self.textctrl_display.AppendText(t)
         self.textctrl_display.AppendText(os.linesep)
 
 
