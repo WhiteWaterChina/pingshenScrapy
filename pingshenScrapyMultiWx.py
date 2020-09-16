@@ -14,9 +14,13 @@ from threading import Thread
 import wx
 from multiprocessing import Pool
 import base64
+import sys
+from bs4 import element
 
+sys.setrecursionlimit(3000)
 
-ver = "Ward Yan-20190521"
+ver = "Ward Yan-20200915"
+web_address = "218.57.146.175:8114"
 
 
 def sumtimesplit(strtimelist):
@@ -45,6 +49,7 @@ def get_status(status):
     switcher = {
         "0": "保存",
         "1": "提交",
+        "audit-submit": "修改评审信息",
         "shenhepeizhi-sq": "售前审核配置",
         "shenhe-chanpinjingli": "产品经理审核",
         "querenxuanpei-ddy": "订单员确认选配",
@@ -58,32 +63,42 @@ def get_status(status):
         "xfzl-gc": "工程人员确认是否下发指令",
         "100": "关闭",
         "101": "异常关闭",
-        "product-verification": "生产验证",
+        "102": "暂停",
+        "103": "终止",
         "vm-audit": "VM审核",
-        "exec-test": "执行测试",
-        "os-comp-test": "OS兼容性测试",
-        "audit-submit": "修改待提交",
         "npi-audit": "NPI处理",
+        "leader-test-judge": "测试teamleader测试决策",
+        "exec-test": "执行测试",
+        "leader-audit": "测试teamleader审核测试结果",
         "vm-test-audit": "VM审核测试结果",
+        "test_report_concordance": "测试报告整合",
+        "os-comp-test": "OS兼容性测试",
+        "product-verification": "生产验证",
+        "oqc-valication": "OQC验证",
+        "material-add": "物料追加",
+        "material-assess": "物料评估",
+        "om-maintaince": "BOM维护",
+        "custom-dev": "定制化开发",
+        "hadware-dev": "固件研发",
     }
     return switcher.get(status, status)
 
 
 def get_detail(link, login_session):
     headers_data_all = {
-        'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+        'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
         'Accept-Encoding': "gzip, deflate",
-        'Accept-Language': "zh-CN,zh;q=0.8",
+        'Accept-Language': "zh-CN,zh;q=0.9,en;q=0.8",
         'Connection': "keep-alive",
-        'Host': "218.57.146.175",
-        'Referer': "http://218.57.146.175/techAudit/welcome.htm",
+        'Host': "{}".format(web_address),
+        'Referer': "http://{}/techAudit/welcome.htm".format(web_address),
         'Upgrade-Insecure-Requests': "1",
-        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36"
     }
     get_page = login_session.get(link, headers=headers_data_all)
     data_page = get_page.text
     print("Get link:{} with return code {}".format(link, get_page.status_code))
-    data_filter = BeautifulSoup(data_page, "html.parser")
+    data_filter = BeautifulSoup(data_page, "html5lib")
     # 获取附件信息
     attachment_temp = data_filter.select(".testAttachmenttable > tr:nth-of-type(1) > td:nth-of-type(2) > table:nth-of-type(1) > tr")
     if len(attachment_temp) <= 1:
@@ -123,7 +138,22 @@ def get_detail(link, login_session):
         test_time = timeTestData
     except IndexError:
         test_time = "None"
-    return link, has_report, report_filename, keywords, test_time
+    # NPI最后一次的评论信息
+    npi_comment = ""
+    npi_comment_list = data_filter.find_all('td',text="NPI处理")
+    # npi_comment_list = data_filter.select('td[text="NPI处理"]')
+    if npi_comment_list is not None:
+        print("Got one!")
+        if len(npi_comment_list) != 0:
+            npi_comment_element = npi_comment_list[-1]
+            npi_comment_1 = npi_comment_element.next_sibling.next_sibling.next_sibling.next_sibling
+            print(type(npi_comment_1))
+            if isinstance(npi_comment_1, element.Tag):
+                npi_comment = npi_comment_1.text
+                print(npi_comment)
+        print(1)
+
+    return link, has_report, report_filename, keywords, test_time, npi_comment
 
 
 class PingShenFrame(wx.Frame):
@@ -376,79 +406,53 @@ class PingShenFrame(wx.Frame):
         username = self.input_username.GetValue()
         password = base64.b64encode(self.input_password.GetValue().encode()).decode()
         # 登录
-        headers_base = {
-            'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-            'Accept-Encoding': "gzip, deflate",
-            'Accept-Language': "zh-CN,zh;q=0.8",
-            'Cache-Control': "max-age=0",
-            'Connection': "keep-alive",
-            'Content-Length': "125",
-            'Content-Type': "application/x-www-form-urlencoded",
-            'Host': "218.57.146.175",
-            'Origin': "http://218.57.146.175",
-            'Referer': "http://218.57.146.175/inspurSSO/login",
-            'Upgrade-Insecure-Requests': "1",
-            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
-        }
-        url_login = "http://218.57.146.175/inspurSSO/login"
+        url_login = "http://{}/techAudit/login.htm".format(web_address)
         login_session = requests.session()
         headers_login = {
-            'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+            'accept': "tapplication/json, text/javascript, */*; q=0.01",
             'accept-encoding': "gzip, deflate",
-            'accept-language': "zh-CN,zh;q=0.8",
-            'cache-control': "max-age=0",
+            'accept-language': "zh-CN,zh;q=0.9,en;q=0.8",
             'connection': "keep-alive",
-            'content-type': "application/x-www-form-urlencoded",
-            'host': "218.57.146.175",
-            'upgrade-insecure-requests': "1",
-            'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+            'content-type': "application/x-www-form-urlencoded; charset=UTF-8",
+            'host': "{}".format(web_address),
+            'Origin': "http://{}".format(web_address),
+            'Referer': "http://{}/techAudit/logout.htm?service=http://{}/techAudit/welcome.htm&reload=true".format(web_address, web_address),
+            'user-agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
+            'X-Requested-With': "XMLHttpRequest",
         }
-        # 获取登录页面的lt/execution/eventid信息
-        response_login_test = login_session.get(url_login, headers=headers_login).text
-        data_soup_tobe_filter = BeautifulSoup(response_login_test, "html.parser")
-        lt = data_soup_tobe_filter.find('input', {'name': 'lt'})['value']
-        execution = data_soup_tobe_filter.find('input', {'name': 'execution'})['value']
-        eventid = data_soup_tobe_filter.find('input', {'name': '_eventId'})['value']
-        payload_login = {
-            'username': "{}".format(username),
-            'password': "{}".format(password),
-            'lt': "{}".format(lt),
-            'execution': "{}".format(execution),
-            '_eventId': "{}".format(eventid)
-        }
-        # 使用以上获取的信息post登录
-        login_session.post(url_login, headers=headers_base, data=payload_login)
+        payload_login = "loginName={}&password={}".format(username, password)
+        #post登录
+        login_session.post(url_login, headers=headers_login, data=payload_login)
         # 开始获取数据
         headers_data = {
             'Accept': "application/json, text/javascript, */*; q=0.01",
             'Accept-Encoding': "gzip, deflate",
             'Accept-Language': "zh-CN,zh;q=0.9",
             'Connection': "keep-alive",
-            'Content-Length': "34",
             'Content-Type': "application/x-www-form-urlencoded; charset=UTF-8",
-            'Host': "218.57.146.175",
-            'Origin': "http://218.57.146.175",
-            'Referer': "http://218.57.146.175/techAudit/auditList/queryAuditList.htm",
-            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+            'Host': "{}".format(web_address),
+            'Origin': "http://{}".format(web_address),
+            'Referer': "http://{}/techAudit/auditList/queryAuditList.htm".format(web_address),
+            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
             'X-Requested-With': "XMLHttpRequest"
         }
         # 先用1获取最大数据条数
-        payload_data_test = "rows=1"
-        url_data = "http://218.57.146.175/techAudit/AuditListController/getQueryAuditList.htm?"
+        payload_data_test = "row=1"
+        url_data = "http://{}/techAudit/AuditListController/getQueryAuditList.htm?".format(web_address)
         response_data_test = login_session.post(url_data, headers=headers_data, data=payload_data_test)
         total_item = re.search(r'"total":(\d+?),', response_data_test.text).groups()[0]
         # 抓取按照每页5000条来进行，根据最大数量/5000来计算抓取的页面次数pages_number
-        if int(total_item) % 5000 == 0:
-            pages_number = int(total_item) // 5000
+        if int(total_item) % 1000 == 0:
+            pages_number = int(total_item) // 1000
         else:
-            pages_number = int(total_item) // 5000 + 1
+            pages_number = int(total_item) // 1000 + 1
 
         productname_list_all = []
 
-        # 然后使用每页5000条数逐页抓取
+        # 然后使用每页1000条数逐页抓取
         for item_pages_temp in range(pages_number):
             item_pages = item_pages_temp + 1
-            payload_data = "page={0}&rows=5000".format(item_pages)
+            payload_data = "page={}&rows=1000".format(item_pages)
             print(payload_data)
             response_data_get = login_session.post(url_data, headers=headers_data, data=payload_data)
             response_data = response_data_get.text
@@ -480,60 +484,35 @@ class PingShenFrame(wx.Frame):
         for item in productname_selected_index_list:
             productname_selected_list.append(self.listbox_productname.GetString(item))
         # 登录
-        headers_base = {
-            'Accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-            'Accept-Encoding': "gzip, deflate",
-            'Accept-Language': "zh-CN,zh;q=0.8",
-            'Cache-Control': "max-age=0",
-            'Connection': "keep-alive",
-            'Content-Length': "125",
-            'Content-Type': "application/x-www-form-urlencoded",
-            'Host': "218.57.146.175",
-            'Origin': "http://218.57.146.175",
-            'Referer': "http://218.57.146.175/inspurSSO/login",
-            'Upgrade-Insecure-Requests': "1",
-            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
-        }
-        url_login = "http://218.57.146.175/inspurSSO/login"
         login_session = requests.session()
+
+        url_login = "http://{}/techAudit/login.htm".format(web_address)
         headers_login = {
-            'accept': "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+            'accept': "tapplication/json, text/javascript, */*; q=0.01",
             'accept-encoding': "gzip, deflate",
-            'accept-language': "zh-CN,zh;q=0.8",
-            'cache-control': "max-age=0",
+            'accept-language': "zh-CN,zh;q=0.9,en;q=0.8",
             'connection': "keep-alive",
-            'content-type': "application/x-www-form-urlencoded",
-            'host': "218.57.146.175",
-            'upgrade-insecure-requests': "1",
-            'user-agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+            'content-type': "application/x-www-form-urlencoded; charset=UTF-8",
+            'host': "{}".format(web_address),
+            'Origin': "http://{}".format(web_address),
+            'Referer': "http://{}/techAudit/logout.htm?service=http://{}/techAudit/welcome.htm&reload=true".format(web_address, web_address),
+            'user-agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
+            'X-Requested-With': "XMLHttpRequest",
         }
-        # 获取登录页面的lt/execution/eventid信息
-        response_login_test = login_session.get(url_login, headers=headers_login).text
-        data_soup_tobe_filter = BeautifulSoup(response_login_test, "html.parser")
-        lt = data_soup_tobe_filter.find('input', {'name': 'lt'})['value']
-        execution = data_soup_tobe_filter.find('input', {'name': 'execution'})['value']
-        eventid = data_soup_tobe_filter.find('input', {'name': '_eventId'})['value']
-        payload_login = {
-            'username': "{}".format(username),
-            'password': "{}".format(password),
-            'lt': "{}".format(lt),
-            'execution': "{}".format(execution),
-            '_eventId': "{}".format(eventid)
-        }
+        payload_login = "loginName={}&password={}".format(username, password)
         # 使用以上获取的信息post登录
-        login_session.post(url_login, headers=headers_base, data=payload_login)
+        login_session.post(url_login, headers=headers_login, data=payload_login)
         # 开始获取数据
         headers_data = {
             'Accept': "application/json, text/javascript, */*; q=0.01",
             'Accept-Encoding': "gzip, deflate",
             'Accept-Language': "zh-CN,zh;q=0.9",
             'Connection': "keep-alive",
-            'Content-Length': "34",
             'Content-Type': "application/x-www-form-urlencoded; charset=UTF-8",
-            'Host': "218.57.146.175",
-            'Origin': "http://218.57.146.175",
-            'Referer': "http://218.57.146.175/techAudit/auditList/queryAuditList.htm",
-            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+            'Host': "{}".format(web_address),
+            'Origin': "http://{}".format(web_address),
+            'Referer': "http://{}/techAudit/auditList/queryAuditList.htm".format(web_address),
+            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36",
             'X-Requested-With': "XMLHttpRequest"
         }
         # 先用1获取最大数据条数
@@ -541,11 +520,11 @@ class PingShenFrame(wx.Frame):
         url_data = "http://218.57.146.175/techAudit/AuditListController/getQueryAuditList.htm?"
         response_data_test = login_session.post(url_data, headers=headers_data, data=payload_data_test)
         total_item = re.search(r'"total":(\d+?),', response_data_test.text).groups()[0]
-        # 抓取按照每页5000条来进行，根据最大数量/5000来计算抓取的页面次数pages_number
-        if int(total_item) % 5000 == 0:
-            pages_number = int(total_item) // 5000
+        # 抓取按照每页1000条来进行，根据最大数量/1000来计算抓取的页面次数pages_number
+        if int(total_item) % 1000 == 0:
+            pages_number = int(total_item) // 1000
         else:
-            pages_number = int(total_item) // 5000 + 1
+            pages_number = int(total_item) // 1000 + 1
         auditno_list = []
         id_list = []
         create_date_list = []
@@ -555,10 +534,10 @@ class PingShenFrame(wx.Frame):
         status_list = []
         url_list = []
         total_time_list = []
-        # 然后使用每页5000条数逐页抓取
+        # 然后使用每页1000条数逐页抓取
         for item_pages_temp in range(pages_number):
             item_pages = item_pages_temp + 1
-            payload_data = "page={0}&rows=5000".format(item_pages)
+            payload_data = "page={}&rows=1000".format(item_pages)
             print(payload_data)
             response_data_get = login_session.post(url_data, headers=headers_data, data=payload_data)
             response_data = response_data_get.text
@@ -603,7 +582,7 @@ class PingShenFrame(wx.Frame):
                     create_date_list_every_page.append(item_creattime)
                     # 评审编号，第一列
                     auditno_list_every_page.append(auditno_list_temp[index_creattime])
-                    url = "http://218.57.146.175/techAudit/details/viewBill.htm?id=" + id_list_temp[index_creattime]
+                    url = "http://{}/techAudit/v1Details/viewBill.htm?id=".format(web_address) + id_list_temp[index_creattime]
                     # 每个评审的url中的唯一编号，作为连接前面获取的总数据和后面每项评审的数据的纽带
                     id_list_every_page.append(id_list_temp[index_creattime])
                     # 关闭时间，第五列
@@ -617,6 +596,7 @@ class PingShenFrame(wx.Frame):
                     url_list_every_page.append(url)
                     # 总花费时间，第六列
                     total_time_list_every_page.append(total_time_list_temp[index_creattime])
+
 
             auditno_list.extend(auditno_list_every_page)
             id_list.extend(id_list_every_page)
@@ -678,6 +658,8 @@ class PingShenFrame(wx.Frame):
                 dict_data_detail["{}".format(num)].append(data_detail_temp[2])
                 # 评审要点 keywords
                 dict_data_detail["{}".format(num)].append(data_detail_temp[3])
+                # NPI备注
+                dict_data_detail["{}".format(num)].append(data_detail_temp[5])
 
         autidno_list_write = []
         projectname_list_write = []
@@ -690,6 +672,7 @@ class PingShenFrame(wx.Frame):
         has_report_list_write = []
         report_filename_list_write = []
         keywords_list_write = []
+        npi_comment_list_write = []
 
         for item_write in dict_data_detail:
             autidno_list_write.append(dict_data_detail[item_write][0])
@@ -703,16 +686,17 @@ class PingShenFrame(wx.Frame):
             has_report_list_write.append(dict_data_detail[item_write][8])
             report_filename_list_write.append(dict_data_detail[item_write][9])
             keywords_list_write.append(dict_data_detail[item_write][10])
+            npi_comment_list_write.append(dict_data_detail[item_write][11])
 
-        # 如下是本地数据处理，与浏览器不再发生关系
-        TitleItem = ['评审编号', '评审名称', '项目名称', '提交时间', '最后更新时间', '处理时长', '测试花费时间', '状态', '是否有报告附件', '报告名称', '评审要点']
+        # 写入到本地xlsx文档
+        TitleItem = ['评审编号', '评审名称', '项目名称', '提交时间', '最后更新时间', '处理时长', '测试花费时间', '状态', '是否有报告附件', '报告名称', '评审要点', 'NPI备注']
         timestamp = time.strftime('%Y%m%d', time.localtime())
         WorkBook = xlsxwriter.Workbook("评审系统抓取信息-{}.xlsx".format(timestamp))
         SheetOne = WorkBook.add_worksheet('评审系统抓取信息')
         formatOne = WorkBook.add_format()
         formatOne.set_border(1)
 
-        SheetOne.set_column('A:J', 14)
+        SheetOne.set_column('A:J', 15)
         already_write_list = []
         for i in range(0, len(TitleItem)):
             SheetOne.write(0, i, TitleItem[i], formatOne)
@@ -746,6 +730,8 @@ class PingShenFrame(wx.Frame):
                         SheetOne.write(1 + index_write, 9, report_filename_list_write[index_write], formatOne)
                     if self.checkBox_summary.GetValue():
                         SheetOne.write(1 + index_write, 10, keywords_list_write[index_write], formatOne)
+                    SheetOne.write(1 + index_write, 11, npi_comment_list_write[index_write], formatOne)
+
         WorkBook.close()
         self.updatedisplay(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())))
         self.updatedisplay(
